@@ -63,7 +63,9 @@ valid checkpoints followed by malformed content. The regression test verifies
 that the failed record retains all three returned generations, the malformed
 content, model identity, raw reasoning, token usage, and latency. Local
 `make check` passes with 12 unit tests and the unchanged 24-record fixture gate.
-The exact live candidate revision remains to be frozen after commit and CI.
+The server launcher now accepts an optional `COGTRACE_MODEL_REVISION` and the
+runbook requires an exact checkout plus immutable image digest. The exact live
+candidate revision remains to be frozen after this launcher change passes CI.
 
 ## Acceptance criteria
 

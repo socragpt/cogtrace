@@ -2,8 +2,14 @@
 set -euo pipefail
 
 MODEL_ID="${COGTRACE_MODEL_ID:-openai/gpt-oss-20b}"
+MODEL_REVISION="${COGTRACE_MODEL_REVISION:-}"
 VLLM_IMAGE="${COGTRACE_VLLM_IMAGE:-vllm/vllm-openai:v0.26.0}"
 MODEL_CACHE="${COGTRACE_MODEL_CACHE:-${PWD}/.cache/huggingface}"
+
+REVISION_ARGS=()
+if [[ -n "${MODEL_REVISION}" ]]; then
+  REVISION_ARGS=(--revision "${MODEL_REVISION}")
+fi
 
 mkdir -p "${MODEL_CACHE}"
 
@@ -12,6 +18,7 @@ docker run --rm --gpus all --ipc=host \
   --volume "${MODEL_CACHE}:/root/.cache/huggingface" \
   "${VLLM_IMAGE}" \
   --model "${MODEL_ID}" \
+  "${REVISION_ARGS[@]}" \
   --host 0.0.0.0 \
   --port 8000 \
   --reasoning-parser openai_gptoss \

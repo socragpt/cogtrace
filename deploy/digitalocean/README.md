@@ -53,6 +53,19 @@ The script pins vLLM, disables tool use, turns off prefix caching for cleaner
 synthetic measurements, and publishes the API only on the server's loopback
 interface. The initial model download may take several minutes.
 
+For a revision-pinned run, also pin the checkout, model, and immutable image:
+
+```bash
+git checkout COGTRACE_COMMIT
+COGTRACE_MODEL_REVISION=MODEL_COMMIT \
+COGTRACE_VLLM_IMAGE=VLLM_IMAGE_DIGEST \
+./scripts/serve_gpt_oss.sh
+```
+
+Replace all three placeholders with values frozen in the active experiment
+record. Do not rely on a moving branch, model alias, or container tag for a
+recorded live collection.
+
 From the local machine, create the tunnel in a separate terminal:
 
 ```bash
