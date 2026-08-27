@@ -53,15 +53,15 @@ matches remain expected by construction.
 
 ## Ordered next steps
 
-1. Commit and confirm CI for the failed-trial retention fix and experiment
-   records.
-2. Freeze the exact `EXP-002` code revision and immutable launch command.
-3. Obtain fresh explicit approval for a billable ephemeral H100; `EXP-001`
+1. Obtain fresh explicit approval for a billable ephemeral H100; `EXP-001`
    approval does not carry forward.
-4. Execute the matched 24-trial `EXP-002` re-smoke once, retain every record,
+2. Recheck live availability, region, price, and the two-hour destruction
+   deadline immediately before creation.
+3. Execute the frozen 24-trial `EXP-002` re-smoke once at commit
+   `5833c938ee57b104870ce867ec2f5a4c41f75786`, retain every record,
    and destroy the GPU after the artifact is safely local.
-5. Do not tune prompts, schemas, parsers, or tag rules against `EXP-001` scores.
-6. Before M1 collection, freeze the annotation guide, task split, capability-loss
+4. Do not tune prompts, schemas, parsers, or tag rules against `EXP-001` scores.
+5. Before M1 collection, freeze the annotation guide, task split, capability-loss
    budget, probabilistic monitoring metrics, retention policy, and analysis code.
 
 ## Current blockers and approvals

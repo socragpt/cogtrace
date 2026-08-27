@@ -5,7 +5,7 @@
 - **Created:** 2026-08-27
 - **Run date:** Not run
 - **Owners:** CogTrace contributors
-- **Code revision:** Freeze after the offline retention fix passes CI
+- **Code revision:** `5833c938ee57b104870ce867ec2f5a4c41f75786`
 - **Data classification:** Synthetic tasks with private raw model reasoning
 
 ## Question
@@ -43,10 +43,30 @@ limit 12, token limit 2048, and structured-output setting from `EXP-001`.
 - Expected trials: 24.
 - Output: `runs/gpt-oss-20b-resmoke.jsonl` on the local machine.
 
-Freeze the exact code revision and run command in this record before creating
-the GPU. Any necessary compatibility change to prompts, parser, schema, or
-treatment semantics requires a separate decision and must not be folded into
-this matched re-smoke.
+Any necessary compatibility change to prompts, parser, schema, or treatment
+semantics requires a separate decision and must not be folded into this matched
+re-smoke.
+
+The frozen remote launch command is:
+
+```bash
+git checkout 5833c938ee57b104870ce867ec2f5a4c41f75786
+COGTRACE_MODEL_REVISION=6cee5e81ee83917806bbde320786a8fb61efebee \
+COGTRACE_VLLM_IMAGE=vllm/vllm-openai@sha256:ffb2d59b1c059a5bd8d781320c9f5189de8293693b7d95da54befddaa54abf52 \
+./scripts/serve_gpt_oss.sh
+```
+
+The frozen local collection command is:
+
+```bash
+PYTHONPATH=src python3 -m cogtrace pilot examples/pilot-tasks.json \
+  --backend openai-compatible \
+  --base-url http://127.0.0.1:8000/v1 \
+  --model openai/gpt-oss-20b \
+  --structured-outputs \
+  --seed 17 \
+  --output runs/gpt-oss-20b-resmoke.jsonl
+```
 
 ## Procedure
 
@@ -63,9 +83,10 @@ valid checkpoints followed by malformed content. The regression test verifies
 that the failed record retains all three returned generations, the malformed
 content, model identity, raw reasoning, token usage, and latency. Local
 `make check` passes with 12 unit tests and the unchanged 24-record fixture gate.
-The server launcher now accepts an optional `COGTRACE_MODEL_REVISION` and the
-runbook requires an exact checkout plus immutable image digest. The exact live
-candidate revision remains to be frozen after this launcher change passes CI.
+The server launcher accepts an optional `COGTRACE_MODEL_REVISION`, and the
+runbook requires an exact checkout plus immutable image digest. Candidate
+revision `5833c938ee57b104870ce867ec2f5a4c41f75786` passed local `make check`,
+shell syntax validation, and GitHub CI before it was frozen here.
 
 ## Acceptance criteria
 
