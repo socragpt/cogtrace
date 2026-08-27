@@ -8,8 +8,8 @@ decisions and experiment results belong in their append-only records.
 | --- | --- |
 | Last updated | 2026-08-27 |
 | Phase | M1 engineering validation |
-| Current gate | Revision-pinned live re-smoke; approval required |
-| Active experiment | [`EXP-002 — failed-trial retention and GPT-OSS re-smoke`](docs/experiments/EXP-002-failed-trial-retention-resmoke.md) |
+| Current gate | Checkpoint completion-budget compatibility decision |
+| Active experiment | [`EXP-002 — complete; integration gate failed`](docs/experiments/EXP-002-failed-trial-retention-resmoke.md) |
 | Repository | <https://github.com/socragpt/cogtrace> |
 
 ## North star
@@ -40,36 +40,46 @@ answer that narrower empirical question.
   latency on a failed trial.
 - The `EXP-001` GPU and its cloud and local experiment SSH keys were destroyed
   and verified absent. No billable experiment resource remains.
+- `EXP-002` reproduced the same checkpoint-2 failure with the exact model,
+  server image, tasks, prompts, and limits. Its retention fix preserved all 33
+  calls and the failed response metadata.
+- In the failed call, GPT-OSS returned no final content after using exactly the
+  2,048-token completion limit in reasoning. Because `finish_reason` is not yet
+  retained, budget exhaustion is strongly supported but not directly recorded.
+- The `EXP-002` GPU and its cloud and local experiment SSH keys were destroyed
+  and verified absent. No billable experiment resource remains.
 - CI passes on Python 3.9, 3.11, and 3.13.
 
 ## Evidence status
 
-Current evidence demonstrates that the fixture pipeline works and that one live
-GPT-OSS endpoint exercised all four treatment paths. The live smoke failed its
-zero-error integration gate, and its small diagnostic scores are not research
-evidence. Nothing yet shows that structured traces improve real-model
-monitorability, faithfulness, capability, or safety. The fixture's perfect rule
-matches remain expected by construction.
+Current evidence demonstrates that the fixture pipeline works and that two
+matched live GPT-OSS runs exercised all four treatment paths. Both live runs
+failed the same zero-error integration gate; `EXP-002` localizes the likely
+failure to the shared reasoning/final-output completion budget. Their small
+diagnostic scores are not research evidence. Nothing yet shows that structured
+traces improve real-model monitorability, faithfulness, capability, or safety.
+The fixture's perfect rule matches remain expected by construction.
 
 ## Ordered next steps
 
-1. Obtain fresh explicit approval for a billable ephemeral H100; `EXP-001`
-   approval does not carry forward.
-2. Recheck live availability, region, price, and the two-hour destruction
-   deadline immediately before creation.
-3. Execute the frozen 24-trial `EXP-002` re-smoke once at commit
-   `5833c938ee57b104870ce867ec2f5a4c41f75786`, retain every record,
-   and destroy the GPU after the artifact is safely local.
-4. Do not tune prompts, schemas, parsers, or tag rules against `EXP-001` scores.
+1. Create a proposed decision record for provider `finish_reason` retention and
+   a treatment-neutral completion-budget policy. Do not change the frozen
+   `EXP-002` result.
+2. Implement and test the accepted instrumentation offline, including length-
+   terminated responses with empty final content.
+3. Preregister `EXP-003` before any compatibility change or third live run.
+4. Obtain fresh explicit approval at the action point before creating any new
+   billable GPU; prior approvals do not carry forward.
 5. Before M1 collection, freeze the annotation guide, task split, capability-loss
    budget, probabilistic monitoring metrics, retention policy, and analysis code.
 
 ## Current blockers and approvals
 
-- The live stage of `EXP-002` needs a new billable GPU and therefore explicit
+- The live checkpoint treatment can consume the entire shared completion budget
+  in reasoning before producing its required final JSON event.
+- Provider termination reasons are not retained in `Generation` or trial calls.
+- Any future live run needs a new experiment record and explicit billable-GPU
   approval at provisioning time.
-- Live GPU availability, region, size slug, and price must be checked immediately
-  before creation.
 - The M1 capability-loss threshold has not been selected or preregistered.
 - Independent annotation procedures have not yet been implemented.
 
@@ -102,7 +112,8 @@ Expected baseline:
 The authoritative fixture result is recorded in
 [`EXP-000`](docs/experiments/EXP-000-deterministic-fixture-gate.md). The failed
 live smoke and private artifact metadata are recorded in
-[`EXP-001`](docs/experiments/EXP-001-gpt-oss-live-smoke.md).
+[`EXP-001`](docs/experiments/EXP-001-gpt-oss-live-smoke.md) and
+[`EXP-002`](docs/experiments/EXP-002-failed-trial-retention-resmoke.md).
 
 ## Decisions still open
 
@@ -110,4 +121,6 @@ live smoke and private artifact metadata are recorded in
 - Annotation rubric, rater count beyond the two-rater minimum, and adjudication.
 - Model family and hardware for replication after GPT-OSS engineering validation.
 - Raw-CoT retention duration and access controls for live collection.
+- Provider termination-reason fields and treatment-neutral completion-budget
+  semantics for checkpoint generation.
 - Design of the action-only and fully constrained treatments.
