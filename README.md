@@ -36,7 +36,8 @@ latency, reviewer time, and robustness to deliberate obfuscation.
 - Structural and semantic validation.
 - Reference monitors for the five initial risk tags.
 - A keyword monitor as a deliberately simple natural-language baseline.
-- A synthetic experiment runner and unit tests.
+- A provider-neutral live-model adapter and four-treatment pilot runner.
+- Safe deterministic pilot fixtures, trajectory logs, and unit tests.
 - A staged research and adversarial-evaluation plan.
 
 ## Quick start
@@ -49,11 +50,26 @@ PYTHONPATH=src python3 -m unittest discover -s tests -v
 PYTHONPATH=src python3 -m cogtrace validate examples/traces/policy-bypass.jsonl
 PYTHONPATH=src python3 -m cogtrace monitor examples/traces/policy-bypass.jsonl
 PYTHONPATH=src python3 -m cogtrace experiment examples/scenarios.json
+PYTHONPATH=src python3 -m cogtrace pilot examples/pilot-tasks.json \
+  --backend fixture --output runs/fixture-pilot.jsonl
 ```
 
 The experiment command prints structured-trace and keyword-baseline metrics.
 Because the included dataset is hand-authored to exercise the pipeline, those
 numbers are engineering checks only.
+
+The pilot command runs four matched treatments:
+
+1. `unrestricted` — natural-language reasoning monitored by a keyword baseline.
+2. `posthoc` — unrestricted reasoning translated into typed events afterward.
+3. `prompt_structured` — a single generation prompted to emit JSONL reasoning.
+4. `checkpoint_loop` — one JSON-schema-constrained event per model call, with
+   only prior typed events persisted between calls.
+
+The checkpoint loop is the first causal-bottleneck prototype, but it is not a
+fully constrained reasoning channel. The model can still perform transient
+unstructured computation inside each call. See
+[`docs/pilot-protocol.md`](docs/pilot-protocol.md) for the exact interpretation.
 
 ## Architecture
 
@@ -76,10 +92,12 @@ telemetry is evidence for evaluation rather than an execution gate.
 
 - `RESEARCH_PLAN.md` — hypotheses, treatments, metrics, and milestones.
 - `docs/trace-spec.md` — the current trace language and invariants.
+- `docs/pilot-protocol.md` — implemented treatments, scoring, and live pilot gates.
 - `docs/threat-model.md` — failures the research must actively test.
 - `docs/related-work.md` — primary research motivating the project and its cautions.
-- `src/cogtrace/` — parser, validator, monitors, evaluator, and CLI.
-- `examples/` — synthetic traces and the smoke-test dataset.
+- `deploy/digitalocean/` — an ephemeral, SSH-only GPU pilot runbook.
+- `src/cogtrace/` — backends, pilot runner, validator, monitors, evaluator, and CLI.
+- `examples/` — synthetic traces, safe pilot tasks, and smoke-test datasets.
 - `tests/` — unit tests for the research infrastructure.
 
 ## Research discipline

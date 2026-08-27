@@ -252,10 +252,36 @@ Gate: benefits persist under at least one strong held-out adversarial condition.
 
 ## 12. Immediate next experiments
 
-1. Expand the synthetic set with 50 negative controls and compositional cases.
-2. Implement unrestricted-text and action-only data interfaces under a common
-   scenario schema.
-3. Add a configurable grammar and sequence-length ablation.
-4. Connect one local or API-backed model behind a provider-neutral adapter.
+1. Run the six-task engineering smoke test against one live open-weight model.
+2. Expand to at least 25 environment templates with matched positive and
+   negative cases, then collect three seeded repetitions across four treatments.
+3. Add unrestricted-text and action-only data interfaces under a common
+   trajectory schema.
+4. Add a configurable grammar, sequence-length ablation, and a true
+   token-level constrained treatment.
 5. Preregister the M1 capability-loss budget and monitoring metrics before
-   collecting pilot results.
+   interpreting or publishing pilot results.
+
+## 13. Implementation status — 2026-08-27
+
+M0 is implemented: versioned events, validation, reference monitors, synthetic
+fixtures, CLI, and tests. The M1 engineering harness now includes a
+provider-neutral OpenAI-compatible backend and four executable treatments:
+unrestricted reasoning, post-hoc translation, prompt-structured reasoning, and
+an interleaved checkpoint loop.
+
+The checkpoint loop constrains only the persistent external reasoning state.
+It does not constrain hidden activations or transient reasoning inside a model
+call. A full grammar-constrained reasoning stream remains M2 work and must not
+be conflated with the checkpoint result.
+
+The next decision gates are:
+
+1. **Fixture gate:** all treatments produce valid, scored records with no live
+   model or GPU.
+2. **Live smoke gate:** all six tasks complete on one model with zero harness
+   errors; these 24 trajectories remain engineering data only.
+3. **Collection gate:** freeze at least 25 task templates, an annotation guide,
+   the capability-loss budget, and the analysis code before the first M1 run.
+4. **M1 gate:** collect at least 200 trajectories, measure task capability and
+   monitorability separately, and obtain independent annotations.

@@ -4,12 +4,21 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 from pathlib import Path
 from typing import Sequence
 
+from .backends import FixtureBackend, OpenAICompatibleBackend
 from .evaluation import Scenario, run_experiment
 from .io import load_scenario_values, load_trace_jsonl
 from .monitoring import StructuredTraceMonitor
+from .pilot import (
+    PilotRunner,
+    Treatment,
+    load_pilot_tasks,
+    task_fixtures,
+    write_trial_jsonl,
+)
 from .validation import TraceValidator
 
 
@@ -53,6 +62,38 @@ def _experiment(path: Path, as_json: bool) -> int:
     return 0
 
 
+def _pilot(args: argparse.Namespace) -> int:
+    tasks = load_pilot_tasks(args.tasks)
+    if args.backend == "fixture":
+        backend = FixtureBackend(task_fixtures(tasks))
+    else:
+        backend = OpenAICompatibleBackend(
+            base_url=args.base_url,
+            model=args.model,
+            api_key=os.environ.get(args.api_key_env, "EMPTY"),
+            timeout_seconds=args.timeout,
+            supports_structured_outputs=args.structured_outputs,
+        )
+    runner = PilotRunner(
+        backend,
+        max_tokens=args.max_tokens,
+        max_events=args.max_events,
+        temperature=args.temperature,
+    )
+    treatments = [Treatment(value) for value in args.treatments]
+    summary = runner.run(
+        tasks,
+        treatments,
+        repetitions=args.repetitions,
+        base_seed=args.seed,
+    )
+    write_trial_jsonl(summary, args.output)
+    result = summary.to_dict()
+    result["output"] = str(args.output)
+    print(json.dumps(result, indent=2))
+    return 1 if any(record.error for record in summary.records) else 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="cogtrace",
@@ -70,6 +111,37 @@ def build_parser() -> argparse.ArgumentParser:
     experiment.add_argument("scenarios", type=Path)
     experiment.add_argument("--json", action="store_true", help="emit machine-readable output")
 
+    pilot = subparsers.add_parser(
+        "pilot", help="run matched structured-reasoning pilot treatments"
+    )
+    pilot.add_argument("tasks", type=Path)
+    pilot.add_argument(
+        "--backend",
+        choices=("fixture", "openai-compatible"),
+        default="fixture",
+    )
+    pilot.add_argument("--base-url", default="http://127.0.0.1:8000/v1")
+    pilot.add_argument("--model", default="openai/gpt-oss-20b")
+    pilot.add_argument("--api-key-env", default="COGTRACE_API_KEY")
+    pilot.add_argument(
+        "--structured-outputs",
+        action="store_true",
+        help="declare that the backend supports JSON-schema-constrained output",
+    )
+    pilot.add_argument(
+        "--treatments",
+        nargs="+",
+        choices=tuple(treatment.value for treatment in Treatment),
+        default=[treatment.value for treatment in Treatment],
+    )
+    pilot.add_argument("--repetitions", type=int, default=1)
+    pilot.add_argument("--seed", type=int, default=7)
+    pilot.add_argument("--max-events", type=int, default=12)
+    pilot.add_argument("--max-tokens", type=int, default=2048)
+    pilot.add_argument("--temperature", type=float, default=0.0)
+    pilot.add_argument("--timeout", type=float, default=180.0)
+    pilot.add_argument("--output", type=Path, default=Path("runs/pilot.jsonl"))
+
     return parser
 
 
@@ -82,5 +154,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         return _monitor(args.trace)
     if args.command == "experiment":
         return _experiment(args.scenarios, args.json)
+    if args.command == "pilot":
+        return _pilot(args)
     parser.error(f"unknown command {args.command!r}")
     return 2
