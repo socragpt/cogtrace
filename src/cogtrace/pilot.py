@@ -421,34 +421,54 @@ class PilotRunner:
         repetition: int,
         seed: int,
     ) -> TrialRecord:
+        generation_log: list[Generation] = []
         try:
             if treatment is Treatment.UNRESTRICTED:
-                return self._run_unrestricted(task, treatment, repetition, seed)
+                return self._run_unrestricted(
+                    task, treatment, repetition, seed, generation_log
+                )
             if treatment is Treatment.POSTHOC:
-                return self._run_posthoc(task, treatment, repetition, seed)
+                return self._run_posthoc(
+                    task, treatment, repetition, seed, generation_log
+                )
             if treatment is Treatment.PROMPT_STRUCTURED:
-                return self._run_prompt_structured(task, treatment, repetition, seed)
+                return self._run_prompt_structured(
+                    task, treatment, repetition, seed, generation_log
+                )
             if treatment is Treatment.CHECKPOINT_LOOP:
-                return self._run_checkpoint_loop(task, treatment, repetition, seed)
+                return self._run_checkpoint_loop(
+                    task, treatment, repetition, seed, generation_log
+                )
             raise ValueError(f"unsupported treatment {treatment.value}")
         except Exception as error:
+            raw_reasoning = "\n--- failed call ---\n".join(
+                generation.reasoning
+                for generation in generation_log
+                if generation.reasoning
+            )
             return TrialRecord(
                 task_id=task.task_id,
                 treatment=treatment,
                 repetition=repetition,
                 seed=seed,
                 backend=self.backend.name,
-                model="",
+                model=generation_log[-1].model if generation_log else "",
                 gold_tags=tuple(sorted(task.gold_tags, key=lambda tag: tag.value)),
                 findings=(),
                 events=(),
                 validation_issues=(),
-                generations=(),
-                raw_reasoning="",
+                generations=tuple(generation_log),
+                raw_reasoning=raw_reasoning,
                 final_output="",
-                prompt_tokens=0,
-                completion_tokens=0,
-                latency_ms=0.0,
+                prompt_tokens=sum(
+                    generation.prompt_tokens for generation in generation_log
+                ),
+                completion_tokens=sum(
+                    generation.completion_tokens for generation in generation_log
+                ),
+                latency_ms=sum(
+                    generation.latency_ms for generation in generation_log
+                ),
                 monitor_input_chars=0,
                 task_success=False if task.expected_final_contains else None,
                 error=f"{type(error).__name__}: {error}",
@@ -463,11 +483,12 @@ class PilotRunner:
         phase: str,
         json_schema: Mapping[str, Any] | None = None,
         step: int | None = None,
+        generation_log: list[Generation] | None = None,
     ) -> Generation:
         metadata: dict[str, Any] = {"task_id": task_id, "phase": phase}
         if step is not None:
             metadata["step"] = step
-        return self.backend.generate(
+        generation = self.backend.generate(
             ChatRequest(
                 messages=tuple(messages),
                 seed=seed,
@@ -477,9 +498,17 @@ class PilotRunner:
                 metadata=metadata,
             )
         )
+        if generation_log is not None:
+            generation_log.append(generation)
+        return generation
 
     def _run_unrestricted(
-        self, task: PilotTask, treatment: Treatment, repetition: int, seed: int
+        self,
+        task: PilotTask,
+        treatment: Treatment,
+        repetition: int,
+        seed: int,
+        generation_log: list[Generation],
     ) -> TrialRecord:
         generation = self._request(
             [
@@ -495,6 +524,7 @@ class PilotRunner:
             seed=seed,
             task_id=task.task_id,
             phase="unrestricted",
+            generation_log=generation_log,
         )
         findings = tuple(self.keyword_monitor.analyze(generation.reasoning))
         return self._record(
@@ -512,7 +542,12 @@ class PilotRunner:
         )
 
     def _run_posthoc(
-        self, task: PilotTask, treatment: Treatment, repetition: int, seed: int
+        self,
+        task: PilotTask,
+        treatment: Treatment,
+        repetition: int,
+        seed: int,
+        generation_log: list[Generation],
     ) -> TrialRecord:
         original = self._request(
             [
@@ -525,6 +560,7 @@ class PilotRunner:
             seed=seed,
             task_id=task.task_id,
             phase="unrestricted",
+            generation_log=generation_log,
         )
         translator_prompt = (
             "Translate the supplied reasoning into a JSON array of CogTrace events. "
@@ -547,6 +583,7 @@ class PilotRunner:
             json_schema=(
                 TRACE_SCHEMA if self.backend.supports_structured_outputs else None
             ),
+            generation_log=generation_log,
         )
         payloads = parse_event_payloads(translated.content)
         trace_id = self._trace_id(task, treatment, repetition)
@@ -579,7 +616,12 @@ class PilotRunner:
         )
 
     def _run_prompt_structured(
-        self, task: PilotTask, treatment: Treatment, repetition: int, seed: int
+        self,
+        task: PilotTask,
+        treatment: Treatment,
+        repetition: int,
+        seed: int,
+        generation_log: list[Generation],
     ) -> TrialRecord:
         generation = self._request(
             [
@@ -596,6 +638,7 @@ class PilotRunner:
             seed=seed,
             task_id=task.task_id,
             phase="prompt_structured",
+            generation_log=generation_log,
         )
         structured_text = generation.reasoning or generation.content
         trace_id = self._trace_id(task, treatment, repetition)
@@ -629,7 +672,12 @@ class PilotRunner:
         )
 
     def _run_checkpoint_loop(
-        self, task: PilotTask, treatment: Treatment, repetition: int, seed: int
+        self,
+        task: PilotTask,
+        treatment: Treatment,
+        repetition: int,
+        seed: int,
+        generation_log: list[Generation],
     ) -> TrialRecord:
         if not self.backend.supports_structured_outputs:
             raise ValueError("checkpoint_loop requires guided JSON support")
@@ -658,6 +706,7 @@ class PilotRunner:
                 phase="checkpoint",
                 json_schema=EVENT_SCHEMA,
                 step=step,
+                generation_log=generation_log,
             )
             generations.append(generation)
             parsed = parse_event_payloads(generation.content)

@@ -102,6 +102,13 @@ predicted tags, typed events, validation issues, raw reasoning returned by the
 backend, final output, token usage, latency, monitor-input characters, task
 success, and any error.
 
+If a later operation in a trial fails, every model generation that returned
+successfully before the failure remains in `calls`, and its model identity,
+reasoning, token usage, and latency remain in the record. A backend request that
+does not return a generation cannot contribute response data, but its error is
+still recorded. Partial failed trials do not receive reconstructed typed events
+or trusted telemetry after the fact.
+
 Monitor-input characters are a dependency-free engineering proxy. Scientific
 collection should add tokenizer-specific monitor tokens, reviewer time,
 detection latency from the first relevant event, calibrated monitor scores,

@@ -8,8 +8,8 @@ decisions and experiment results belong in their append-only records.
 | --- | --- |
 | Last updated | 2026-08-27 |
 | Phase | M1 engineering validation |
-| Current gate | Live-model smoke test |
-| Active experiment | [`EXP-001 — GPT-OSS live smoke`](docs/experiments/EXP-001-gpt-oss-live-smoke.md) |
+| Current gate | Revision-pinned live re-smoke; approval required |
+| Active experiment | [`EXP-002 — failed-trial retention and GPT-OSS re-smoke`](docs/experiments/EXP-002-failed-trial-retention-resmoke.md) |
 | Repository | <https://github.com/socragpt/cogtrace> |
 
 ## North star
@@ -31,32 +31,43 @@ answer that narrower empirical question.
   constrain transient within-call reasoning or hidden computation.
 - The deterministic fixture gate passed: 24 trial records, no harness errors,
   valid structured traces, and preserved completion markers.
+- `EXP-001` ran against GPT-OSS 20B on one H100 and retained all 24 top-level
+  records. Its integration gate failed because one checkpoint returned no
+  parseable event.
+- The `EXP-001` error path also discarded the completed calls preceding that
+  parse failure. The original artifact is preserved, and the harness now has a
+  regression-tested fix that retains successful generations, usage, model, and
+  latency on a failed trial.
+- The `EXP-001` GPU and its cloud and local experiment SSH keys were destroyed
+  and verified absent. No billable experiment resource remains.
 - CI passes on Python 3.9, 3.11, and 3.13.
-- No live model run has occurred. No GPU has been provisioned.
 
 ## Evidence status
 
-Current evidence demonstrates that the software pipeline works on authored
-fixtures. It does **not** show that structured traces improve real-model
+Current evidence demonstrates that the fixture pipeline works and that one live
+GPT-OSS endpoint exercised all four treatment paths. The live smoke failed its
+zero-error integration gate, and its small diagnostic scores are not research
+evidence. Nothing yet shows that structured traces improve real-model
 monitorability, faithfulness, capability, or safety. The fixture's perfect rule
-matches are expected by construction.
+matches remain expected by construction.
 
 ## Ordered next steps
 
-1. Obtain explicit approval for a billable ephemeral GPU.
-2. Follow `deploy/digitalocean/README.md` to start an SSH-only GPT-OSS endpoint.
-3. Execute the frozen 24-trial live smoke in `EXP-001` and retain every record.
-4. Update `EXP-001` with hardware, model revision, runtime, deviations, and raw
-   artifact locations; then update this file with the gate result.
-5. Fix harness failures only after preserving the original run and documenting
-   deviations. Do not tune against tag scores during the smoke gate.
+1. Commit and confirm CI for the failed-trial retention fix and experiment
+   records.
+2. Freeze the exact `EXP-002` code revision and immutable launch command.
+3. Obtain fresh explicit approval for a billable ephemeral H100; `EXP-001`
+   approval does not carry forward.
+4. Execute the matched 24-trial `EXP-002` re-smoke once, retain every record,
+   and destroy the GPU after the artifact is safely local.
+5. Do not tune prompts, schemas, parsers, or tag rules against `EXP-001` scores.
 6. Before M1 collection, freeze the annotation guide, task split, capability-loss
    budget, probabilistic monitoring metrics, retention policy, and analysis code.
 
 ## Current blockers and approvals
 
-- The next experiment needs a billable GPU and therefore explicit approval at
-  provisioning time.
+- The live stage of `EXP-002` needs a new billable GPU and therefore explicit
+  approval at provisioning time.
 - Live GPU availability, region, size slug, and price must be checked immediately
   before creation.
 - The M1 capability-loss threshold has not been selected or preregistered.
@@ -83,13 +94,15 @@ make check
 
 Expected baseline:
 
-- 11 unit tests pass.
+- 12 unit tests pass.
 - The fixture pilot writes 24 JSONL records under `runs/`.
 - No pilot record contains a harness error.
 - Structured treatments have valid traces.
 
-The authoritative historical result is recorded in
-[`EXP-000`](docs/experiments/EXP-000-deterministic-fixture-gate.md).
+The authoritative fixture result is recorded in
+[`EXP-000`](docs/experiments/EXP-000-deterministic-fixture-gate.md). The failed
+live smoke and private artifact metadata are recorded in
+[`EXP-001`](docs/experiments/EXP-001-gpt-oss-live-smoke.md).
 
 ## Decisions still open
 

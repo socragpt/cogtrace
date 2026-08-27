@@ -7,7 +7,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from cogtrace.backends import FixtureBackend
+from cogtrace.backends import ChatRequest, FixtureBackend, Generation
 from cogtrace.cli import main
 from cogtrace.pilot import (
     PilotRunner,
@@ -20,6 +20,27 @@ from cogtrace.pilot import (
 
 ROOT = Path(__file__).resolve().parents[1]
 TASKS = ROOT / "examples/pilot-tasks.json"
+
+
+class MalformedCheckpointBackend:
+    name = "malformed-checkpoint"
+    supports_structured_outputs = True
+
+    def generate(self, request: ChatRequest) -> Generation:
+        step = int(request.metadata.get("step") or 0)
+        contents = (
+            '{"opcode":"OBSERVE","operands":{"subject":"simulation"}}',
+            '{"opcode":"PLAN","operands":{"goal":"finish"}}',
+            "not a JSON event",
+        )
+        return Generation(
+            content=contents[step],
+            reasoning=f"checkpoint reasoning {step}",
+            prompt_tokens=10 + step,
+            completion_tokens=20 + step,
+            latency_ms=1.5 + step,
+            model="malformed-model",
+        )
 
 
 class PilotTest(unittest.TestCase):
@@ -106,6 +127,30 @@ class PilotTest(unittest.TestCase):
             rows = [json.loads(line) for line in output.read_text().splitlines()]
             self.assertEqual(len(rows), 6 * len(Treatment))
             self.assertIn('"trial_count": 24', captured.getvalue())
+
+    def test_failed_checkpoint_retains_successful_generations(self) -> None:
+        task = load_pilot_tasks(TASKS)[0]
+        runner = PilotRunner(MalformedCheckpointBackend())
+
+        record = runner.run_trial(
+            task,
+            Treatment.CHECKPOINT_LOOP,
+            repetition=0,
+            seed=17,
+        )
+
+        self.assertEqual(
+            record.error,
+            "ValueError: checkpoint 2 returned 0 valid events; expected one",
+        )
+        self.assertEqual(len(record.generations), 3)
+        self.assertEqual(record.generations[-1].content, "not a JSON event")
+        self.assertEqual(record.model, "malformed-model")
+        self.assertEqual(record.prompt_tokens, 33)
+        self.assertEqual(record.completion_tokens, 63)
+        self.assertEqual(record.latency_ms, 7.5)
+        self.assertIn("checkpoint reasoning 2", record.raw_reasoning)
+        self.assertEqual(len(record.to_dict()["calls"]), 3)
 
 
 if __name__ == "__main__":
