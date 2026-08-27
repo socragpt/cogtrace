@@ -46,7 +46,7 @@ The scaffold uses only Python's standard library and requires Python 3.9 or
 newer.
 
 ```bash
-PYTHONPATH=src python3 -m unittest discover -s tests -v
+make check
 PYTHONPATH=src python3 -m cogtrace validate examples/traces/policy-bypass.jsonl
 PYTHONPATH=src python3 -m cogtrace monitor examples/traces/policy-bypass.jsonl
 PYTHONPATH=src python3 -m cogtrace experiment examples/scenarios.json
@@ -90,7 +90,12 @@ telemetry is evidence for evaluation rather than an execution gate.
 
 ## Repository map
 
+- `AGENTS.md` — durable instructions for humans and agents continuing the work.
+- `PROJECT_STATE.md` — the single living status, active gate, and next steps.
 - `RESEARCH_PLAN.md` — hypotheses, treatments, metrics, and milestones.
+- `docs/decisions/` — append-only records of durable project choices.
+- `docs/experiments/` — planned configurations, deviations, and results.
+- `docs/handoff-checklist.md` — end-of-context continuity checklist.
 - `docs/trace-spec.md` — the current trace language and invariants.
 - `docs/pilot-protocol.md` — implemented treatments, scoring, and live pilot gates.
 - `docs/threat-model.md` — failures the research must actively test.
@@ -99,6 +104,14 @@ telemetry is evidence for evaluation rather than an execution gate.
 - `src/cogtrace/` — backends, pilot runner, validator, monitors, evaluator, and CLI.
 - `examples/` — synthetic traces, safe pilot tasks, and smoke-test datasets.
 - `tests/` — unit tests for the research infrastructure.
+
+## Continuing the project
+
+Start with [`AGENTS.md`](AGENTS.md), then read
+[`PROJECT_STATE.md`](PROJECT_STATE.md) and its linked active experiment. The
+repository—not conversation history—is the canonical project memory. Durable
+choices go in decision records; changing status goes only in `PROJECT_STATE.md`;
+experiment plans and results remain in the experiment registry.
 
 ## Research discipline
 
