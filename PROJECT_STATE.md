@@ -8,8 +8,8 @@ decisions and experiment results belong in their append-only records.
 | --- | --- |
 | Last updated | 2026-09-03 |
 | Phase | M1 engineering validation |
-| Current gate | EXP-003 billable GPU action-point approval |
-| Active experiment | [`EXP-003 — planned`](docs/experiments/EXP-003-completion-budget-compatibility.md) |
+| Current gate | Freeze the M1 collection design and acceptance criteria |
+| Active experiment | None; [`EXP-003`](docs/experiments/EXP-003-completion-budget-compatibility.md) is complete |
 | Repository | <https://github.com/socragpt/cogtrace> |
 
 ## North star
@@ -55,43 +55,50 @@ answer that narrower empirical question.
 - The harness now retains `finish_reason` for every returned call, summarizes
   termination reasons by treatment, and explicitly classifies a
   length-terminated checkpoint with empty final content without retrying it.
-- `EXP-003` is preregistered as a complete matched re-smoke with a 4,096-token
-  ceiling applied to every model call. Candidate revision `f39ccf8d` passes
-  local checks and CI on Python 3.9, 3.11, and 3.13. It has not been run.
+- `EXP-003` completed the preregistered matched re-smoke with a 4,096-token
+  ceiling applied to every model call. All 24 records and 32 returned calls were
+  retained, no backend or harness error occurred, every termination reason was
+  present, and all 32 calls ended with `finish_reason="stop"`.
+- The `EXP-003` compatibility gate passed. Its trace-validity, task-success,
+  latency, token, and risk-tag diagnostics are engineering observations from a
+  small synthetic run, not research evidence.
+- The `EXP-003` GPU and its cloud and local experiment SSH keys were destroyed
+  and verified absent. No billable experiment resource remains.
 
 ## Evidence status
 
-Current evidence demonstrates that the fixture pipeline works and that two
-matched live GPT-OSS runs exercised all four treatment paths. Both live runs
-failed the same zero-error integration gate; `EXP-002` localizes the likely
-failure to the shared reasoning/final-output completion budget. Their small
-diagnostic scores are not research evidence. Nothing yet shows that structured
-traces improve real-model monitorability, faithfulness, capability, or safety.
-The new termination-reason tests are offline instrumentation evidence only, and
-the fixture's perfect rule matches remain expected by construction.
+Current evidence demonstrates that the fixture pipeline works and that three
+matched live GPT-OSS runs exercised all four treatment paths. The first two
+failed the same integration gate; `EXP-002` localized the likely failure to the
+shared reasoning/final-output completion budget. `EXP-003` passed the
+compatibility gate at the preregistered 4,096-token per-call ceiling with all
+termination reasons retained. This is engineering evidence for one pinned
+model/backend/task configuration, not evidence that the higher ceiling caused
+the pass or that structured traces improve monitorability, faithfulness,
+capability, investigator performance, or safety. The small synthetic diagnostic
+scores are not research evidence.
 
 ## Ordered next steps
 
-1. Obtain fresh explicit approval at the action point before creating any new
-   billable GPU; prior approvals do not carry forward.
-2. Recheck current H100 availability and price, then follow the loopback-only
-   DigitalOcean runbook with the frozen revisions.
-3. Run the complete preregistered 24-trial smoke once, retain all observations,
-   then destroy the GPU and verify absence.
-4. If the gate passes, begin M1 collection design. If it fails, preserve the run
-   and record the next decision without selective reruns.
-5. Before M1 collection, freeze the annotation guide, task split, capability-loss
-   budget, probabilistic monitoring metrics, retention policy, and analysis code.
+1. Draft and accept the M1 annotation guide, task split, capability-loss budget,
+   probabilistic monitoring metrics, raw-reasoning retention policy,
+   trajectory-level compute policy, and primary analysis plan.
+2. Add an action-only comparator and implement independent annotation and
+   adjudication support required by the M1 design.
+3. Freeze the M1 tasks, settings, prompts, metrics, analysis code, and acceptance
+   criteria in a new preregistered experiment record before collection.
+4. Pass local checks and CI on that frozen revision.
+5. Only then recheck accelerator price and availability and obtain fresh explicit
+   approval at the action point before creating any billable resource.
 
 ## Current blockers and approvals
 
-- Whether the 4,096-token per-call ceiling resolves the live GPT-OSS checkpoint
-  compatibility failure is unknown until `EXP-003` runs.
-- Any future live run needs a new experiment record and explicit billable-GPU
-  approval at provisioning time; `EXP-003` exists but approval has not been
-  requested at the action point.
 - The M1 capability-loss threshold has not been selected or preregistered.
 - Independent annotation procedures have not yet been implemented.
+- The M1 probabilistic monitoring metrics, primary analysis, task split,
+  retention policy, and trajectory-level compute policy remain unfrozen.
+- Any future live run needs a new experiment record and fresh explicit
+  billable-resource approval at provisioning time.
 
 ## Known limitations
 
@@ -123,7 +130,9 @@ The authoritative fixture result is recorded in
 [`EXP-000`](docs/experiments/EXP-000-deterministic-fixture-gate.md). The failed
 live smoke and private artifact metadata are recorded in
 [`EXP-001`](docs/experiments/EXP-001-gpt-oss-live-smoke.md) and
-[`EXP-002`](docs/experiments/EXP-002-failed-trial-retention-resmoke.md).
+[`EXP-002`](docs/experiments/EXP-002-failed-trial-retention-resmoke.md). The
+passing compatibility smoke and private artifact metadata are recorded in
+[`EXP-003`](docs/experiments/EXP-003-completion-budget-compatibility.md).
 
 ## Decisions still open
 
