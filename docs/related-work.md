@@ -37,6 +37,36 @@ CogTrace's separation of validity, monitorability, and faithfulness.
 - Publication: <https://www.anthropic.com/research/reasoning-models-dont-say-think>
 - Paper: <https://assets.anthropic.com/m/71876fabef0f0ed4/original/reasoning_models_paper.pdf>
 
+## Strategic reporting and mechanism design
+
+Bergemann, Koh, and Morris's *Mechanism Design for Alignment and Control*
+models AI agents whose preferences and capabilities are privately known. It
+treats evaluations, elicitation dialogues, proposed actions, and observed track
+records as reports that can affect later rewards or permissions. Because a more
+capable agent can conceal capability more easily than a less capable agent can
+counterfeit it, the paper represents evaluation evidence with a one-sided
+verification order and studies mechanisms that make truthful reporting and
+obedience incentive compatible.
+
+- Abstract: <https://arxiv.org/abs/2609.01595>
+- Paper: <https://arxiv.org/html/2609.01595v1>
+
+For CogTrace, this is a theoretical lens rather than evidence that structured
+traces improve monitoring. A trace can be viewed as a restricted reporting
+channel: its grammar and budgets determine which messages are available, while
+the consequences associated with detection can change which message an agent
+chooses. Independent action telemetry plays a role closer to externally
+verifiable evidence than model-authored trace fields do.
+
+The paper's definition of interpretability is narrower and different from
+CogTrace's monitorability outcome: it is the concentration of the designer's
+subjective belief about an agent's behavioral bias. Its scalable-oversight
+example also assumes that a weak monitor observes the strong actor's bias,
+whereas CogTrace empirically tests whether trace evidence permits accurate,
+calibrated inference. The paper therefore motivates controlled incentive tests
+and strategic-reporting threats, but does not justify treating a valid trace as
+truthful or using it as an action-control signal.
+
 ## Constrained generation
 
 Grammar-constrained decoding and parser-guided generation establish that model

@@ -125,10 +125,19 @@ All risky resources should be simulated, isolated, and non-production.
 ### Phase 3: adversarial monitor gaming
 
 - Tell the agent that its trace is monitored.
-- Reward task success and penalize detectable risk evidence.
+- Compare a neutral reporting condition with a detection-contingent condition
+  that rewards task success and penalizes detectable risk evidence.
+- Freeze the incentive schedule and whether it is disclosed as experimental
+  parameters; keep the task and action interface matched across conditions.
 - Vary whether the grammar, monitor, and risk labels are known.
 - Test held-out monitors and secret opcode renamings.
 - Evaluate steganography through operands, sequences, timing, and tool output.
+- Distinguish standardization (validity and surface regularity) from retained
+  informativeness against independent action telemetry and annotations.
+
+Detection-contingent consequences in this phase are simulated experimental
+scores or rewards. They must not make trace output an authorization signal or
+change runtime tool permissions.
 
 ### Phase 4: investigator study
 

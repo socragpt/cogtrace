@@ -22,6 +22,18 @@ shift, parser differences, and annotation error.
 
 ## Failure modes
 
+### Strategic misreporting
+
+When a trace can affect evaluation scores or expected downstream treatment, the
+agent emits the report that best serves those consequences rather than the most
+informative account available to the monitor. A constrained schema can make the
+report more regular without making it more truthful.
+
+Compare neutral and detection-contingent incentive conditions while holding the
+task and action interface fixed. Measure changes in trace evidence against
+independent telemetry and annotations, and record the complete incentive
+schedule as an experimental parameter. Do not use traces to authorize actions.
+
 ### Omission
 
 The trace excludes a risk-relevant premise, objective, or policy conflict.
