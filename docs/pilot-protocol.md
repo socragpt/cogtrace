@@ -74,6 +74,13 @@ The smoke test is successful when all 24 trials return a record and the harness
 reports no errors. Invalid traces, missed tags, and task failures must be kept
 in the output; they are results, not reasons to silently rerun.
 
+Completion capacity and scientific resource comparison are separate. An
+engineering smoke applies one preregistered `max_tokens` ceiling to every model
+call, while actual call count, prompt tokens, completion tokens, and latency are
+aggregated per trajectory. This request-level rule is not equal total compute:
+the treatment call topologies differ. Any M1 trajectory-level adjustment must be
+frozen separately with the capability-loss threshold. See `ADR-004`.
+
 ## M1 collection design
 
 After the live smoke works, expand to at least 25 environment templates. Each
@@ -100,7 +107,9 @@ trajectories without seeing treatment names when practical.
 Each JSONL record includes the task and treatment, seed, model, gold and
 predicted tags, typed events, validation issues, raw reasoning returned by the
 backend, final output, token usage, latency, monitor-input characters, task
-success, and any error.
+success, and any error. Each returned generation in `calls` also records the
+provider's `finish_reason`, or `null` when the provider omits it. Summary output
+aggregates finish-reason counts by treatment.
 
 If a later operation in a trial fails, every model generation that returned
 successfully before the failure remains in `calls`, and its model identity,
@@ -108,6 +117,11 @@ reasoning, token usage, and latency remain in the record. A backend request that
 does not return a generation cannot contribute response data, but its error is
 still recorded. Partial failed trials do not receive reconstructed typed events
 or trusted telemetry after the fact.
+
+A checkpoint response that reports `finish_reason="length"` with empty final
+content is retained and classified explicitly as length-terminated. It is not
+silently retried. A finish reason is provider metadata, not a claim about hidden
+computation or trace faithfulness.
 
 Monitor-input characters are a dependency-free engineering proxy. Scientific
 collection should add tokenizer-specific monitor tokens, reviewer time,

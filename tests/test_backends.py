@@ -56,11 +56,40 @@ class OpenAICompatibleBackendTest(unittest.TestCase):
         self.assertEqual(generation.reasoning, "brief")
         self.assertEqual(generation.content, '{"ok":true}')
         self.assertEqual(generation.prompt_tokens, 3)
+        self.assertIsNone(generation.finish_reason)
         self.assertEqual(
             captured["body"]["structured_outputs"],  # type: ignore[index]
             {"json": {"type": "object"}},
         )
         self.assertNotIn("guided_json", captured["body"])  # type: ignore[operator]
+
+    def test_retains_length_finish_reason_with_empty_final_content(self) -> None:
+        response = _Response(
+            {
+                "model": "fixture-live-model",
+                "choices": [
+                    {
+                        "message": {"content": None, "reasoning": "unfinished"},
+                        "finish_reason": "length",
+                    }
+                ],
+                "usage": {"prompt_tokens": 5, "completion_tokens": 2048},
+            }
+        )
+
+        backend = OpenAICompatibleBackend(
+            base_url="http://127.0.0.1:8000/v1",
+            model="fixture-live-model",
+        )
+        with patch("urllib.request.urlopen", lambda request, timeout: response):
+            generation = backend.generate(
+                ChatRequest(messages=({"role": "user", "content": "test"},), seed=17)
+            )
+
+        self.assertEqual(generation.content, "")
+        self.assertEqual(generation.reasoning, "unfinished")
+        self.assertEqual(generation.completion_tokens, 2048)
+        self.assertEqual(generation.finish_reason, "length")
 
 
 if __name__ == "__main__":

@@ -40,6 +40,7 @@ class Generation:
     completion_tokens: int
     latency_ms: float
     model: str
+    finish_reason: str | None = None
 
 
 class ModelBackend(Protocol):
@@ -121,7 +122,8 @@ class OpenAICompatibleBackend:
         latency_ms = (time.perf_counter() - started) * 1000
 
         try:
-            message = response_value["choices"][0]["message"]
+            choice = response_value["choices"][0]
+            message = choice["message"]
         except (KeyError, IndexError, TypeError) as error:
             raise BackendError("backend response has no chat message") from error
 
@@ -133,6 +135,7 @@ class OpenAICompatibleBackend:
             or ""
         )
         usage = response_value.get("usage") or {}
+        finish_reason = choice.get("finish_reason")
         return Generation(
             content=str(content),
             reasoning=str(reasoning),
@@ -140,6 +143,9 @@ class OpenAICompatibleBackend:
             completion_tokens=int(usage.get("completion_tokens") or 0),
             latency_ms=latency_ms,
             model=str(response_value.get("model") or self.model),
+            finish_reason=(
+                str(finish_reason) if finish_reason is not None else None
+            ),
         )
 
 
@@ -188,4 +194,5 @@ class FixtureBackend:
             completion_tokens=max(1, completion_chars // 4),
             latency_ms=1.0,
             model="fixture-model",
+            finish_reason="stop",
         )

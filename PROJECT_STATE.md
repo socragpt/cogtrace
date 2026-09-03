@@ -6,10 +6,10 @@ decisions and experiment results belong in their append-only records.
 
 | Field | Current |
 | --- | --- |
-| Last updated | 2026-08-27 |
+| Last updated | 2026-09-03 |
 | Phase | M1 engineering validation |
-| Current gate | Checkpoint completion-budget compatibility decision |
-| Active experiment | [`EXP-002 — complete; integration gate failed`](docs/experiments/EXP-002-failed-trial-retention-resmoke.md) |
+| Current gate | EXP-003 candidate freeze and action-point approval |
+| Active experiment | [`EXP-003 — planned`](docs/experiments/EXP-003-completion-budget-compatibility.md) |
 | Repository | <https://github.com/socragpt/cogtrace> |
 
 ## North star
@@ -45,9 +45,18 @@ answer that narrower empirical question.
   calls and the failed response metadata.
 - In the failed call, GPT-OSS returned no final content after using exactly the
   2,048-token completion limit in reasoning. Because `finish_reason` is not yet
-  retained, budget exhaustion is strongly supported but not directly recorded.
+  present in the frozen artifact, budget exhaustion is strongly supported but
+  not directly recorded.
 - The `EXP-002` GPU and its cloud and local experiment SSH keys were destroyed
   and verified absent. No billable experiment resource remains.
+- `ADR-004` defines provider termination-reason retention and separates the
+  treatment-neutral per-call ceiling used for compatibility testing from
+  trajectory-level capability and cost comparisons.
+- The harness now retains `finish_reason` for every returned call, summarizes
+  termination reasons by treatment, and explicitly classifies a
+  length-terminated checkpoint with empty final content without retrying it.
+- `EXP-003` is preregistered as a complete matched re-smoke with a 4,096-token
+  ceiling applied to every model call. It has not been run.
 - CI passes on Python 3.9, 3.11, and 3.13.
 
 ## Evidence status
@@ -58,28 +67,29 @@ failed the same zero-error integration gate; `EXP-002` localizes the likely
 failure to the shared reasoning/final-output completion budget. Their small
 diagnostic scores are not research evidence. Nothing yet shows that structured
 traces improve real-model monitorability, faithfulness, capability, or safety.
-The fixture's perfect rule matches remain expected by construction.
+The new termination-reason tests are offline instrumentation evidence only, and
+the fixture's perfect rule matches remain expected by construction.
 
 ## Ordered next steps
 
-1. Create a proposed decision record for provider `finish_reason` retention and
-   a treatment-neutral completion-budget policy. Do not change the frozen
-   `EXP-002` result.
-2. Implement and test the accepted instrumentation offline, including length-
-   terminated responses with empty final content.
-3. Preregister `EXP-003` before any compatibility change or third live run.
-4. Obtain fresh explicit approval at the action point before creating any new
+1. Freeze the exact instrumentation candidate in `EXP-003` after local checks
+   and CI pass.
+2. Obtain fresh explicit approval at the action point before creating any new
    billable GPU; prior approvals do not carry forward.
+3. Run the complete preregistered 24-trial smoke once, retain all observations,
+   then destroy the GPU and verify absence.
+4. If the gate passes, begin M1 collection design. If it fails, preserve the run
+   and record the next decision without selective reruns.
 5. Before M1 collection, freeze the annotation guide, task split, capability-loss
    budget, probabilistic monitoring metrics, retention policy, and analysis code.
 
 ## Current blockers and approvals
 
-- The live checkpoint treatment can consume the entire shared completion budget
-  in reasoning before producing its required final JSON event.
-- Provider termination reasons are not retained in `Generation` or trial calls.
+- Whether the 4,096-token per-call ceiling resolves the live GPT-OSS checkpoint
+  compatibility failure is unknown until `EXP-003` runs.
 - Any future live run needs a new experiment record and explicit billable-GPU
-  approval at provisioning time.
+  approval at provisioning time; `EXP-003` exists but approval has not been
+  requested at the action point.
 - The M1 capability-loss threshold has not been selected or preregistered.
 - Independent annotation procedures have not yet been implemented.
 
@@ -104,7 +114,7 @@ make check
 
 Expected baseline:
 
-- 12 unit tests pass.
+- 14 unit tests pass.
 - The fixture pilot writes 24 JSONL records under `runs/`.
 - No pilot record contains a harness error.
 - Structured treatments have valid traces.
@@ -121,6 +131,5 @@ live smoke and private artifact metadata are recorded in
 - Annotation rubric, rater count beyond the two-rater minimum, and adjudication.
 - Model family and hardware for replication after GPT-OSS engineering validation.
 - Raw-CoT retention duration and access controls for live collection.
-- Provider termination-reason fields and treatment-neutral completion-budget
-  semantics for checkpoint generation.
+- Exact M1 trajectory-level compute comparison and capability-loss budget.
 - Design of the action-only and fully constrained treatments.

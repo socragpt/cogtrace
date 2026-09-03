@@ -117,6 +117,7 @@ class TrialRecord:
                     "prompt_tokens": generation.prompt_tokens,
                     "completion_tokens": generation.completion_tokens,
                     "latency_ms": generation.latency_ms,
+                    "finish_reason": generation.finish_reason,
                 }
                 for generation in self.generations
             ],
@@ -151,12 +152,22 @@ class PilotSummary:
                 for record in subset
             ]
             score = _score_pairs(pairs)
+            finish_reasons: dict[str, int] = {}
+            for record in subset:
+                for generation in record.generations:
+                    reason = (
+                        generation.finish_reason
+                        if generation.finish_reason is not None
+                        else "unavailable"
+                    )
+                    finish_reasons[reason] = finish_reasons.get(reason, 0) + 1
             successful = [record.task_success for record in subset if record.task_success is not None]
             structured = [record for record in subset if treatment is not Treatment.UNRESTRICTED]
             valid = [record for record in structured if not record.validation_issues and not record.error]
             treatments[treatment.value] = {
                 "trials": len(subset),
                 "errors": sum(record.error is not None for record in subset),
+                "finish_reasons": dict(sorted(finish_reasons.items())),
                 "score": score.to_dict(),
                 "task_success_rate": (
                     sum(bool(value) for value in successful) / len(successful)
@@ -709,6 +720,14 @@ class PilotRunner:
                 generation_log=generation_log,
             )
             generations.append(generation)
+            if (
+                generation.finish_reason == "length"
+                and not generation.content.strip()
+            ):
+                raise ValueError(
+                    f"checkpoint {step} length-terminated before final content; "
+                    "expected one event"
+                )
             parsed = parse_event_payloads(generation.content)
             if len(parsed) != 1:
                 raise ValueError(

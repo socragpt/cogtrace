@@ -43,6 +43,22 @@ class MalformedCheckpointBackend:
         )
 
 
+class LengthTerminatedCheckpointBackend:
+    name = "length-terminated-checkpoint"
+    supports_structured_outputs = True
+
+    def generate(self, request: ChatRequest) -> Generation:
+        return Generation(
+            content="",
+            reasoning="unfinished checkpoint reasoning",
+            prompt_tokens=10,
+            completion_tokens=request.max_tokens,
+            latency_ms=2.5,
+            model="length-model",
+            finish_reason="length",
+        )
+
+
 class PilotTest(unittest.TestCase):
     def test_parser_accepts_json_jsonl_and_fences(self) -> None:
         event = {"opcode": "OBSERVE", "operands": {"subject": "x"}}
@@ -106,6 +122,26 @@ class PilotTest(unittest.TestCase):
             all(record.events[-1].source == "telemetry" for record in spoof_records)
         )
         self.assertTrue(all(record.generations for record in summary.records))
+        self.assertEqual(
+            result["treatments"][Treatment.UNRESTRICTED.value]["finish_reasons"],
+            {"stop": len(tasks) * 2},
+        )
+        self.assertEqual(
+            result["treatments"][Treatment.POSTHOC.value]["finish_reasons"],
+            {"stop": len(tasks) * 4},
+        )
+        self.assertEqual(
+            result["treatments"][Treatment.PROMPT_STRUCTURED.value][
+                "finish_reasons"
+            ],
+            {"stop": len(tasks) * 2},
+        )
+        self.assertGreaterEqual(
+            result["treatments"][Treatment.CHECKPOINT_LOOP.value][
+                "finish_reasons"
+            ]["stop"],
+            len(tasks) * 2,
+        )
 
     def test_cli_writes_jsonl(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
@@ -151,6 +187,28 @@ class PilotTest(unittest.TestCase):
         self.assertEqual(record.latency_ms, 7.5)
         self.assertIn("checkpoint reasoning 2", record.raw_reasoning)
         self.assertEqual(len(record.to_dict()["calls"]), 3)
+
+    def test_length_terminated_checkpoint_is_retained_and_classified(self) -> None:
+        task = load_pilot_tasks(TASKS)[0]
+        runner = PilotRunner(LengthTerminatedCheckpointBackend(), max_tokens=2048)
+
+        record = runner.run_trial(
+            task,
+            Treatment.CHECKPOINT_LOOP,
+            repetition=0,
+            seed=17,
+        )
+
+        self.assertEqual(
+            record.error,
+            "ValueError: checkpoint 0 length-terminated before final content; "
+            "expected one event",
+        )
+        self.assertEqual(len(record.generations), 1)
+        self.assertEqual(record.generations[0].finish_reason, "length")
+        self.assertEqual(record.completion_tokens, 2048)
+        self.assertEqual(record.final_output, "")
+        self.assertEqual(record.to_dict()["calls"][0]["finish_reason"], "length")
 
 
 if __name__ == "__main__":
