@@ -8,7 +8,7 @@ decisions and experiment results belong in their append-only records.
 | --- | --- |
 | Last updated | 2026-09-03 |
 | Phase | M1 engineering validation |
-| Current gate | EXP-003 candidate freeze and action-point approval |
+| Current gate | EXP-003 billable GPU action-point approval |
 | Active experiment | [`EXP-003 — planned`](docs/experiments/EXP-003-completion-budget-compatibility.md) |
 | Repository | <https://github.com/socragpt/cogtrace> |
 
@@ -44,9 +44,9 @@ answer that narrower empirical question.
   server image, tasks, prompts, and limits. Its retention fix preserved all 33
   calls and the failed response metadata.
 - In the failed call, GPT-OSS returned no final content after using exactly the
-  2,048-token completion limit in reasoning. Because `finish_reason` is not yet
-  present in the frozen artifact, budget exhaustion is strongly supported but
-  not directly recorded.
+  2,048-token completion limit in reasoning. Because the frozen artifact does
+  not contain `finish_reason`, budget exhaustion is strongly supported but not
+  directly recorded.
 - The `EXP-002` GPU and its cloud and local experiment SSH keys were destroyed
   and verified absent. No billable experiment resource remains.
 - `ADR-004` defines provider termination-reason retention and separates the
@@ -56,8 +56,8 @@ answer that narrower empirical question.
   termination reasons by treatment, and explicitly classifies a
   length-terminated checkpoint with empty final content without retrying it.
 - `EXP-003` is preregistered as a complete matched re-smoke with a 4,096-token
-  ceiling applied to every model call. It has not been run.
-- CI passes on Python 3.9, 3.11, and 3.13.
+  ceiling applied to every model call. Candidate revision `f39ccf8d` passes
+  local checks and CI on Python 3.9, 3.11, and 3.13. It has not been run.
 
 ## Evidence status
 
@@ -72,10 +72,10 @@ the fixture's perfect rule matches remain expected by construction.
 
 ## Ordered next steps
 
-1. Freeze the exact instrumentation candidate in `EXP-003` after local checks
-   and CI pass.
-2. Obtain fresh explicit approval at the action point before creating any new
+1. Obtain fresh explicit approval at the action point before creating any new
    billable GPU; prior approvals do not carry forward.
+2. Recheck current H100 availability and price, then follow the loopback-only
+   DigitalOcean runbook with the frozen revisions.
 3. Run the complete preregistered 24-trial smoke once, retain all observations,
    then destroy the GPU and verify absence.
 4. If the gate passes, begin M1 collection design. If it fails, preserve the run
@@ -131,5 +131,5 @@ live smoke and private artifact metadata are recorded in
 - Annotation rubric, rater count beyond the two-rater minimum, and adjudication.
 - Model family and hardware for replication after GPT-OSS engineering validation.
 - Raw-CoT retention duration and access controls for live collection.
-- Exact M1 trajectory-level compute comparison and capability-loss budget.
+- Exact M1 trajectory-level compute matching or adjustment policy.
 - Design of the action-only and fully constrained treatments.

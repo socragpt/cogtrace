@@ -5,7 +5,7 @@
 - **Created:** 2026-09-03
 - **Run date:** Not run
 - **Owners:** CogTrace contributors
-- **Code revision:** `ed6208d88725e4215e45559f23f00114aee3a477`
+- **Code revision:** `f39ccf8dc836e198f3873b2a26a252367b0056d1`
 - **Data classification:** Synthetic tasks with private raw model reasoning
 
 ## Question
@@ -61,7 +61,7 @@ recorded before interpretation or a new experiment.
 The frozen remote launch command is:
 
 ```bash
-git checkout ed6208d88725e4215e45559f23f00114aee3a477
+git checkout f39ccf8dc836e198f3873b2a26a252367b0056d1
 COGTRACE_MODEL_REVISION=6cee5e81ee83917806bbde320786a8fb61efebee \
 COGTRACE_VLLM_IMAGE=vllm/vllm-openai@sha256:ffb2d59b1c059a5bd8d781320c9f5189de8293693b7d95da54befddaa54abf52 \
 ./scripts/serve_gpt_oss.sh
@@ -90,6 +90,19 @@ PYTHONPATH=src python3 -m cogtrace pilot examples/pilot-tasks.json \
 5. Preserve every record and returned call, including malformed, missing, and
    length-terminated output.
 6. Copy the private artifacts locally, destroy the GPU, and verify absence.
+
+## Offline readiness
+
+Candidate revision `f39ccf8dc836e198f3873b2a26a252367b0056d1`
+retains provider `finish_reason` values, serializes them for every call, and
+summarizes their counts by treatment. Its regression tests cover an omitted
+finish reason and a `finish_reason="length"` response with reasoning, full token
+usage, and empty final content. The failed checkpoint retains that call and
+records an explicit error without retrying it.
+
+Local `make check` passes with 14 unit tests and the unchanged 24-record fixture
+gate. GitHub CI passes on Python 3.9, 3.11, and 3.13 for the frozen candidate.
+No live endpoint or billable resource was used for offline readiness.
 
 ## Acceptance criteria
 
