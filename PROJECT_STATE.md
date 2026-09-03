@@ -8,7 +8,7 @@ decisions and experiment results belong in their append-only records.
 | --- | --- |
 | Last updated | 2026-09-03 |
 | Phase | M1 engineering validation |
-| Current gate | Freeze the M1 collection design and acceptance criteria |
+| Current gate | Implement the accepted M1 collection interfaces and analysis |
 | Active experiment | None; [`EXP-003`](docs/experiments/EXP-003-completion-budget-compatibility.md) is complete |
 | Repository | <https://github.com/socragpt/cogtrace> |
 
@@ -64,6 +64,17 @@ answer that narrower empirical question.
   small synthetic run, not research evidence.
 - The `EXP-003` GPU and its cloud and local experiment SSH keys were destroyed
   and verified absent. No billable experiment resource remains.
+- [`ADR-005`](docs/decisions/ADR-005-m1-design-and-data-policy.md) fixes the M1
+  design: 30 matched template families split 10/10/10 by
+  family, seeds 17/29/43, shared A/B/C base trajectories, a separate checkpoint
+  intervention, a 5% false-positive primary operating point, and a 10-point
+  capability-loss budget.
+- The accepted M1 annotation guide requires two independent raters, evidence
+  citations, third-rater adjudication, and an annotation-gate failure when more
+  than 2% of locked trajectory-tag pairs remain unresolved.
+- Unredacted M1 trajectory bundles are private for at most 30 days. Primary
+  analysis does not adjust for realized compute, latency, validity, or success;
+  those treatment outcomes are reported separately.
 
 ## Evidence status
 
@@ -78,25 +89,32 @@ the pass or that structured traces improve monitorability, faithfulness,
 capability, investigator performance, or safety. The small synthetic diagnostic
 scores are not research evidence.
 
+The M1 design choices are now durable project commitments, not collection
+evidence. No action-only view, annotation harness, probabilistic monitor, frozen
+task manifest, or M1 analysis artifact has yet passed an implementation gate.
+
 ## Ordered next steps
 
-1. Draft and accept the M1 annotation guide, task split, capability-loss budget,
-   probabilistic monitoring metrics, raw-reasoning retention policy,
-   trajectory-level compute policy, and primary analysis plan.
-2. Add an action-only comparator and implement independent annotation and
-   adjudication support required by the M1 design.
-3. Freeze the M1 tasks, settings, prompts, metrics, analysis code, and acceptance
-   criteria in a new preregistered experiment record before collection.
-4. Pass local checks and CI on that frozen revision.
-5. Only then recheck accelerator price and availability and obtain fresh explicit
-   approval at the action point before creating any billable resource.
+1. Add the derived `action_only` view and shared base-trajectory identity for the
+   action-only, unrestricted, and post-hoc records.
+2. Implement versioned annotation, evidence-reference, and adjudication records
+   plus validation tests for the accepted annotation guide.
+3. Implement probabilistic monitor scores and the frozen thresholding,
+   missingness, bootstrap, and capability-gate analysis.
+4. Build and validate the 30-family matched task manifest, then freeze the exact
+   model, settings, prompts, monitor versions, analysis commit, and retention
+   deadline in a new experiment record.
+5. Pass local checks and CI. Only then recheck accelerator price and availability
+   and obtain fresh approval before creating any billable resource.
 
 ## Current blockers and approvals
 
-- The M1 capability-loss threshold has not been selected or preregistered.
-- Independent annotation procedures have not yet been implemented.
-- The M1 probabilistic monitoring metrics, primary analysis, task split,
-  retention policy, and trajectory-level compute policy remain unfrozen.
+- The action-only view and shared A/B/C trajectory identity are not implemented.
+- Annotation and adjudication procedures are specified but their record schema,
+  validation, and workflow tooling are not implemented.
+- Probabilistic monitor scores and the frozen M1 analysis are not implemented.
+- The 30 task families, exact model, prompts, monitor versions, and analysis
+  commit are not frozen in an experiment record.
 - Any future live run needs a new experiment record and fresh explicit
   billable-resource approval at provisioning time.
 
@@ -136,9 +154,7 @@ passing compatibility smoke and private artifact metadata are recorded in
 
 ## Decisions still open
 
-- Exact M1 capability-loss budget and primary statistical test.
-- Annotation rubric, rater count beyond the two-rater minimum, and adjudication.
+- Exact probabilistic monitor family, features, training procedure, and version.
+- Exact M1 task families, model, server, prompts, and generation settings.
 - Model family and hardware for replication after GPT-OSS engineering validation.
-- Raw-CoT retention duration and access controls for live collection.
-- Exact M1 trajectory-level compute matching or adjustment policy.
-- Design of the action-only and fully constrained treatments.
+- Design of the fully constrained M2 treatment and trace interventions.

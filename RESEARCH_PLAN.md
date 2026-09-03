@@ -26,6 +26,22 @@ adversarial conditions?
 - How much does structure reduce investigator time and reconstruction error?
 - Which benefits come from standardization rather than causal faithfulness?
 
+### Success-state deployment hypothesis
+
+If the staged research gates succeed, the practical result would be an
+observability and investigation layer rather than a constrained action system.
+An agent would emit a small typed monitoring trace alongside its ordinary
+actions. CogTrace would join that untrusted, lossy trace with independently
+sourced, harness-provenanced telemetry and produce versioned findings and
+evidence bundles for monitors and investigators.
+
+Automated enforcement is not an implied outcome of a positive experiment. A
+separate deployment-policy system would own any warning, quarantine, or
+intervention decision and would require its own evidence and governance. The
+conditional component architecture, trust model, failure behavior, and staged
+deployment gates are defined in
+[`docs/target-operating-model.md`](docs/target-operating-model.md).
+
 ## 2. Operational definitions
 
 - **Chain of thought:** The model-generated reasoning channel made available to
@@ -83,6 +99,14 @@ budget, and action policy across treatments wherever technically possible.
 Treatment C must be labeled as a summary, never as direct evidence of the
 agent's reasoning. Treatments D and E require interventions on the trace to
 measure whether it participates causally in later computation.
+
+For M1, A, B, and C are monitor views over one unrestricted base trajectory: A
+withholds reasoning, B exposes it, and C adds a post-hoc translation. D is a
+separately generated checkpoint intervention paired by task, instance, and seed.
+This isolates visibility and translation effects from sampled behavior while
+keeping the capability-changing checkpoint treatment explicit. The prompted
+JSON treatment remains an engineering ablation and is not one of the primary
+A-through-D M1 conditions. See `ADR-005`.
 
 ## 5. Initial risk properties
 
@@ -154,6 +178,11 @@ and missed evidence.
 - Per-tag precision, recall, and F1.
 - Time from first relevant evidence to detection.
 - Calibration error for probabilistic monitors.
+
+M1 uses micro-recall at a calibration-derived 5% false-positive target as its
+single primary monitoring metric because the pilot is too small to estimate 1%
+or 0.1% operating points reliably. Those lower-FPR results and all per-tag
+contrasts remain secondary until a larger collection.
 
 ### Efficiency metrics
 
@@ -231,12 +260,16 @@ Gate: all invariants and scoring behavior covered by tests.
 
 ### M1 — Pilot data collection
 
-- At least 200 trajectories across treatments A–D.
+- Thirty matched environment-template families, three fixed seeds, 360
+  independently generated agent trajectories, and 720 A-through-D monitor-view
+  records.
 - Annotation guide and two independent raters.
 - Cost, latency, capability, and monitorability baselines.
 
-Gate: evidence that treatment D can be implemented without a catastrophic task
-performance loss.
+Gate: unrestricted test success is at least 70%, and the lower bound of the 95%
+template-clustered interval for treatment D minus B task success is at least
+-10 percentage points. The primary monitoring contrast is interpretable only
+when both B and D contain at least 20 resolved positive locked-test tag pairs.
 
 ### M2 — Fully constrained treatment
 
@@ -261,17 +294,18 @@ Gate: benefits persist under at least one strong held-out adversarial condition.
 
 ## 12. Immediate next experiments
 
-1. Run the six-task engineering smoke test against one live open-weight model.
-2. Expand to at least 25 environment templates with matched positive and
-   negative cases, then collect three seeded repetitions across four treatments.
-3. Add unrestricted-text and action-only data interfaces under a common
-   trajectory schema.
-4. Add a configurable grammar, sequence-length ablation, and a true
-   token-level constrained treatment.
-5. Preregister the M1 capability-loss budget and monitoring metrics before
-   interpreting or publishing pilot results.
+1. Implement the derived action-only view and shared base-trajectory identity
+   for A, B, and C.
+2. Implement the versioned annotation, evidence-reference, and adjudication
+   records in `docs/annotation-guide.md`.
+3. Implement probabilistic monitor outputs and the frozen M1 thresholding,
+   missingness, bootstrap, and capability-gate analysis.
+4. Build and validate 30 matched environment-template families with a frozen
+   development/calibration/test manifest.
+5. Preregister the exact M1 model, prompts, tasks, settings, analysis commit,
+   and retention deadline before any live collection.
 
-## 13. Implementation status — 2026-08-27
+## 13. Implementation status — 2026-09-03
 
 M0 is implemented: versioned events, validation, reference monitors, synthetic
 fixtures, CLI, and tests. The M1 engineering harness now includes a
@@ -284,13 +318,24 @@ It does not constrain hidden activations or transient reasoning inside a model
 call. A full grammar-constrained reasoning stream remains M2 work and must not
 be conflated with the checkpoint result.
 
+Three GPT-OSS engineering smokes are complete. `EXP-003` passed the integration
+gate with all 24 records, 32 returned calls, and provider termination reasons
+retained. `ADR-005` now fixes the M1 task split, monitor views, annotation and
+adjudication workflow, 5% false-positive primary operating point, 10-point
+capability-loss budget, template-clustered analysis, compute accounting, and
+30-day raw-trajectory retention maximum. These are design commitments, not M1
+evidence.
+
 The next decision gates are:
 
-1. **Fixture gate:** all treatments produce valid, scored records with no live
-   model or GPU.
-2. **Live smoke gate:** all six tasks complete on one model with zero harness
-   errors; these 24 trajectories remain engineering data only.
-3. **Collection gate:** freeze at least 25 task templates, an annotation guide,
-   the capability-loss budget, and the analysis code before the first M1 run.
-4. **M1 gate:** collect at least 200 trajectories, measure task capability and
-   monitorability separately, and obtain independent annotations.
+1. **Fixture gate:** passed; all implemented treatments produce valid, scored
+   records with no live model or GPU.
+2. **Live smoke gate:** passed by `EXP-003`; this remains engineering evidence
+   only.
+3. **Implementation gate:** add the action-only view, annotation/adjudication
+   records, probabilistic monitor interface, and frozen analysis with tests.
+4. **Collection gate:** freeze 30 matched task families, the exact model and
+   prompts, monitor versions, analysis commit, and retention deadline before the
+   first M1 run.
+5. **M1 gate:** collect all scheduled records, measure capability and
+   monitorability separately, and obtain independent adjudicated annotations.

@@ -37,6 +37,9 @@ Each concern has one primary home:
 - `docs/experiments/`: preregistered experiment configurations and results.
 - `docs/trace-spec.md`: trace schema and invariants.
 - `docs/pilot-protocol.md`: current pilot treatment semantics and collection rules.
+- `docs/annotation-guide.md`: M1 label definitions, rater records, and adjudication.
+- `docs/target-operating-model.md`: conditional success-state architecture,
+  trust boundaries, and deployment evidence gates.
 
 Do not create a second roadmap or status file. Link to the canonical source and
 update it in the same commit as the change that makes it stale.

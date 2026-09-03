@@ -88,6 +88,17 @@ No component in this repository blocks or authorizes an agent action. Later
 experiments may correlate traces with independent action telemetry, but that
 telemetry is evidence for evaluation rather than an execution gate.
 
+### Conditional target operating model
+
+If the research gates succeed, CogTrace could become an observability and
+investigation layer that joins an untrusted, lossy structured trace with
+harness-trusted behavioral telemetry. It would produce versioned findings and
+incident timelines for monitors and reviewers while leaving enforcement to a
+separate deployment-policy system. See
+[`docs/target-operating-model.md`](docs/target-operating-model.md) for the
+conditional architecture, trust boundaries, evidence gates, and staged path to
+practical use.
+
 ## Repository map
 
 - `AGENTS.md` — durable instructions for humans and agents continuing the work.
@@ -98,6 +109,9 @@ telemetry is evidence for evaluation rather than an execution gate.
 - `docs/handoff-checklist.md` — end-of-context continuity checklist.
 - `docs/trace-spec.md` — the current trace language and invariants.
 - `docs/pilot-protocol.md` — implemented treatments, scoring, and live pilot gates.
+- `docs/annotation-guide.md` — M1 risk-tag labels, rater workflow, and adjudication.
+- `docs/target-operating-model.md` — conditional success-state architecture,
+  trust boundaries, and deployment evidence gates.
 - `docs/threat-model.md` — failures the research must actively test.
 - `docs/related-work.md` — primary research motivating the project and its cautions.
 - `deploy/digitalocean/` — an ephemeral, SSH-only GPU pilot runbook.
