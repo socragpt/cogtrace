@@ -294,24 +294,24 @@ Gate: benefits persist under at least one strong held-out adversarial condition.
 
 ## 12. Immediate next experiments
 
-1. Implement the derived action-only view and shared base-trajectory identity
-   for A, B, and C.
-2. Implement the versioned annotation, evidence-reference, and adjudication
+1. Implement the versioned annotation, evidence-reference, and adjudication
    records in `docs/annotation-guide.md`.
-3. Implement probabilistic monitor outputs and the frozen M1 thresholding,
+2. Implement probabilistic monitor outputs and the frozen M1 thresholding,
    missingness, bootstrap, and capability-gate analysis.
-4. Build and validate 30 matched environment-template families with a frozen
+3. Build and validate 30 matched environment-template families with a frozen
    development/calibration/test manifest.
-5. Preregister the exact M1 model, prompts, tasks, settings, analysis commit,
+4. Preregister the exact M1 model, prompts, tasks, settings, analysis commit,
    and retention deadline before any live collection.
 
 ## 13. Implementation status — 2026-09-03
 
 M0 is implemented: versioned events, validation, reference monitors, synthetic
 fixtures, CLI, and tests. The M1 engineering harness now includes a
-provider-neutral OpenAI-compatible backend and four executable treatments:
-unrestricted reasoning, post-hoc translation, prompt-structured reasoning, and
-an interleaved checkpoint loop.
+provider-neutral OpenAI-compatible backend and five executable treatments:
+the derived action-only view, unrestricted reasoning, post-hoc translation,
+prompt-structured reasoning, and an interleaved checkpoint loop. The
+action-only, unrestricted, and post-hoc records share one base agent generation
+and harness-owned trajectory and call identity.
 
 The checkpoint loop constrains only the persistent external reasoning state.
 It does not constrain hidden activations or transient reasoning inside a model
@@ -332,8 +332,9 @@ The next decision gates are:
    records with no live model or GPU.
 2. **Live smoke gate:** passed by `EXP-003`; this remains engineering evidence
    only.
-3. **Implementation gate:** add the action-only view, annotation/adjudication
-   records, probabilistic monitor interface, and frozen analysis with tests.
+3. **Implementation gate:** add annotation/adjudication records, a probabilistic
+   monitor interface, and the frozen analysis with tests. The action-only and
+   shared-base interface is complete.
 4. **Collection gate:** freeze 30 matched task families, the exact model and
    prompts, monitor versions, analysis commit, and retention deadline before the
    first M1 run.

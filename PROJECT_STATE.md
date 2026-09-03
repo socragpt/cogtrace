@@ -23,8 +23,16 @@ answer that narrower empirical question.
 
 - M0 infrastructure is implemented: trace model, validator, reference monitors,
   evaluation pipeline, CLI, examples, and tests.
-- The live harness supports `unrestricted`, `posthoc`, `prompt_structured`, and
-  `checkpoint_loop` treatments behind a provider-neutral interface.
+- The live harness supports `action_only`, `unrestricted`, `posthoc`,
+  `prompt_structured`, and `checkpoint_loop` treatments behind a
+  provider-neutral interface.
+- Requested action-only, unrestricted, and post-hoc records derive from one
+  unrestricted base generation. Harness-assigned record, base-trajectory, and
+  call IDs preserve the distinction between analysis records, agent
+  trajectories, and translator calls.
+- The action-only monitor input contains only the base final output and trusted
+  telemetry. Raw reasoning is retained only in the private trajectory record
+  for shared annotation and audit.
 - Model-authored events and harness-trusted telemetry have separate provenance.
 - The six-task deterministic fixture covers all five initial risk tags.
 - `checkpoint_loop` persists only typed events between calls but does not
@@ -90,26 +98,24 @@ capability, investigator performance, or safety. The small synthetic diagnostic
 scores are not research evidence.
 
 The M1 design choices are now durable project commitments, not collection
-evidence. No action-only view, annotation harness, probabilistic monitor, frozen
-task manifest, or M1 analysis artifact has yet passed an implementation gate.
+evidence. The action-only and shared-base record interface has passed its local
+implementation gate. No annotation harness, probabilistic monitor, frozen task
+manifest, or M1 analysis artifact has yet passed an implementation gate.
 
 ## Ordered next steps
 
-1. Add the derived `action_only` view and shared base-trajectory identity for the
-   action-only, unrestricted, and post-hoc records.
-2. Implement versioned annotation, evidence-reference, and adjudication records
+1. Implement versioned annotation, evidence-reference, and adjudication records
    plus validation tests for the accepted annotation guide.
-3. Implement probabilistic monitor scores and the frozen thresholding,
+2. Implement probabilistic monitor scores and the frozen thresholding,
    missingness, bootstrap, and capability-gate analysis.
-4. Build and validate the 30-family matched task manifest, then freeze the exact
+3. Build and validate the 30-family matched task manifest, then freeze the exact
    model, settings, prompts, monitor versions, analysis commit, and retention
    deadline in a new experiment record.
-5. Pass local checks and CI. Only then recheck accelerator price and availability
+4. Pass local checks and CI. Only then recheck accelerator price and availability
    and obtain fresh approval before creating any billable resource.
 
 ## Current blockers and approvals
 
-- The action-only view and shared A/B/C trajectory identity are not implemented.
 - Annotation and adjudication procedures are specified but their record schema,
   validation, and workflow tooling are not implemented.
 - Probabilistic monitor scores and the frozen M1 analysis are not implemented.
@@ -120,7 +126,6 @@ task manifest, or M1 analysis artifact has yet passed an implementation gate.
 
 ## Known limitations
 
-- There is no action-only treatment in the executable pilot runner yet.
 - There is no continuously grammar-constrained reasoning stream; that is M2.
 - Current monitors are transparent reference rules, not calibrated classifiers.
 - Monitor input characters are only an engineering proxy for tokenizer-specific
@@ -139,7 +144,7 @@ make check
 
 Expected baseline:
 
-- 14 unit tests pass.
+- 16 unit tests pass.
 - The fixture pilot writes 24 JSONL records under `runs/`.
 - No pilot record contains a harness error.
 - Structured treatments have valid traces.

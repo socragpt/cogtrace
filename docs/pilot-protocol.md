@@ -16,6 +16,7 @@ by the harness, never by the model.
 
 | Treatment | Generated artifact | What is constrained | Main limitation |
 | --- | --- | --- | --- |
+| `action_only` | Trusted telemetry and final output | Monitor visibility only | Omits reasoning evidence by design |
 | `unrestricted` | Natural-language reasoning and final answer | Nothing | Expensive and semantically variable monitoring input |
 | `posthoc` | Unrestricted reasoning, then translated events | Translator's final JSON only | Summary can omit, clean up, or invent rationale |
 | `prompt_structured` | JSONL-like emitted reasoning | Prompt compliance only | Syntax is not guaranteed by decoding |
@@ -26,6 +27,14 @@ accepted event becomes the only reasoning state supplied to the next call. It
 is still weaker than a continuously grammar-constrained reasoning stream. That
 fifth treatment requires tokenizer-aware decoding or a custom logits processor
 and remains an M2 deliverable.
+
+`action_only`, `unrestricted`, and `posthoc` are now derived from one
+unrestricted base call whenever they are requested in the same run. Each has a
+unique `record_id` and the same harness-owned `base_trajectory_id`; their first
+`call_id` is also the same. The action-only and unrestricted views receive the
+same final output and trusted telemetry, with reasoning added only to the
+unrestricted monitor input. The post-hoc view adds a translator call but does
+not create a new agent trajectory.
 
 Current vLLM structured-output controls apply to a response's structured output
 while parsed reasoning remains a separate field. CogTrace therefore asks the
@@ -55,6 +64,19 @@ Fixture acceptance criteria:
 - Every task contains its declared completion marker.
 - Trusted telemetry remains tagged `source=telemetry` and model output cannot
   assign that provenance.
+
+This default command deliberately retains the four-condition engineering
+record set used by the completed smoke experiments. It now shares the
+unrestricted base call between the `unrestricted` and `posthoc` records, so the
+current call topology is not a replay of the historical artifacts. Use the M1
+view set explicitly when testing the accepted primary interface:
+
+```bash
+PYTHONPATH=src python3 -m cogtrace pilot examples/pilot-tasks.json \
+  --backend fixture \
+  --treatments action_only unrestricted posthoc checkpoint_loop \
+  --output runs/fixture-m1-views.jsonl
+```
 
 ## Live engineering smoke
 
@@ -126,12 +148,21 @@ locked test is evaluated once.
 
 ## Recorded fields
 
-Each JSONL record includes the task and treatment, seed, model, gold and
-predicted tags, typed events, validation issues, raw reasoning returned by the
-backend, final output, token usage, latency, monitor-input characters, task
-success, and any error. Each returned generation in `calls` also records the
-provider's `finish_reason`, or `null` when the provider omits it. Summary output
-aggregates finish-reason counts by treatment.
+Each JSONL record includes a unique `record_id`, a harness-assigned
+`base_trajectory_id`, the task and treatment, seed, model, gold and predicted
+tags, typed events, validation issues, raw reasoning returned by the backend,
+final output, token usage, latency, monitor-input characters, task success, and
+any error. Each returned generation in `calls` has a harness-assigned `call_id`
+and records the provider's `finish_reason`, or `null` when the provider omits
+it. Shared calls appear in each self-contained analysis record with the same
+ID; compute analysis must deduplicate them by `call_id`. Summary output reports
+unique base-trajectory and call counts and aggregates finish reasons by
+treatment.
+
+The action-only JSONL record retains the shared base reasoning because the raw
+private bundle is the annotation and audit unit. The runner never sends that
+reasoning to the action-only monitor. These raw records are subject to the
+private-data controls below and are not themselves safe public exports.
 
 If a later operation in a trial fails, every model generation that returned
 successfully before the failure remains in `calls`, and its model identity,

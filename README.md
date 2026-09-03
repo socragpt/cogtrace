@@ -36,7 +36,7 @@ latency, reviewer time, and robustness to deliberate obfuscation.
 - Structural and semantic validation.
 - Reference monitors for the five initial risk tags.
 - A keyword monitor as a deliberately simple natural-language baseline.
-- A provider-neutral live-model adapter and four-treatment pilot runner.
+- A provider-neutral live-model adapter and five executable pilot treatments.
 - Safe deterministic pilot fixtures, trajectory logs, and unit tests.
 - A staged research and adversarial-evaluation plan.
 
@@ -58,7 +58,8 @@ The experiment command prints structured-trace and keyword-baseline metrics.
 Because the included dataset is hand-authored to exercise the pipeline, those
 numbers are engineering checks only.
 
-The pilot command runs four matched treatments:
+By default, the pilot command preserves the four-condition engineering smoke
+used by `EXP-000` through `EXP-003`:
 
 1. `unrestricted` — natural-language reasoning monitored by a keyword baseline.
 2. `posthoc` — unrestricted reasoning translated into typed events afterward.
@@ -70,6 +71,21 @@ The checkpoint loop is the first causal-bottleneck prototype, but it is not a
 fully constrained reasoning channel. The model can still perform transient
 unstructured computation inside each call. See
 [`docs/pilot-protocol.md`](docs/pilot-protocol.md) for the exact interpretation.
+
+The M1 A/B/C interface is also executable:
+
+```bash
+PYTHONPATH=src python3 -m cogtrace pilot examples/pilot-tasks.json \
+  --backend fixture \
+  --treatments action_only unrestricted posthoc checkpoint_loop \
+  --output runs/fixture-m1-views.jsonl
+```
+
+Here `action_only`, `unrestricted`, and `posthoc` share one unrestricted base
+generation. Their records have a common harness-assigned `base_trajectory_id`;
+the post-hoc record adds one translator call. The action-only monitor receives
+only trusted telemetry and the final output. Raw reasoning remains in the
+private trajectory record for annotation and audit, not in that monitor input.
 
 ## Architecture
 

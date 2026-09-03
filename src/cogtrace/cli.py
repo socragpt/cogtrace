@@ -13,6 +13,7 @@ from .evaluation import Scenario, run_experiment
 from .io import load_scenario_values, load_trace_jsonl
 from .monitoring import StructuredTraceMonitor
 from .pilot import (
+    ENGINEERING_SMOKE_TREATMENTS,
     PilotRunner,
     Treatment,
     load_pilot_tasks,
@@ -132,7 +133,7 @@ def build_parser() -> argparse.ArgumentParser:
         "--treatments",
         nargs="+",
         choices=tuple(treatment.value for treatment in Treatment),
-        default=[treatment.value for treatment in Treatment],
+        default=[treatment.value for treatment in ENGINEERING_SMOKE_TREATMENTS],
     )
     pilot.add_argument("--repetitions", type=int, default=1)
     pilot.add_argument("--seed", type=int, default=7)

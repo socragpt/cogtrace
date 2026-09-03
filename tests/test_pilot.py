@@ -10,6 +10,7 @@ from pathlib import Path
 from cogtrace.backends import ChatRequest, FixtureBackend, Generation
 from cogtrace.cli import main
 from cogtrace.pilot import (
+    ENGINEERING_SMOKE_TREATMENTS,
     PilotRunner,
     Treatment,
     load_pilot_tasks,
@@ -59,6 +60,37 @@ class LengthTerminatedCheckpointBackend:
         )
 
 
+class RecordingFixtureBackend(FixtureBackend):
+    def __init__(self, fixtures: dict[str, object]) -> None:
+        super().__init__(fixtures)
+        self.requests: list[ChatRequest] = []
+
+    def generate(self, request: ChatRequest) -> Generation:
+        self.requests.append(request)
+        return super().generate(request)
+
+
+class FailingBaseBackend:
+    name = "failing-base"
+    supports_structured_outputs = True
+
+    def __init__(self) -> None:
+        self.requests: list[ChatRequest] = []
+
+    def generate(self, request: ChatRequest) -> Generation:
+        self.requests.append(request)
+        raise RuntimeError("base generation failed")
+
+
+class RecordingTextMonitor:
+    def __init__(self) -> None:
+        self.inputs: list[str] = []
+
+    def analyze(self, text: str) -> list[object]:
+        self.inputs.append(text)
+        return []
+
+
 class PilotTest(unittest.TestCase):
     def test_parser_accepts_json_jsonl_and_fences(self) -> None:
         event = {"opcode": "OBSERVE", "operands": {"subject": "x"}}
@@ -86,7 +118,12 @@ class PilotTest(unittest.TestCase):
         structured = [
             record
             for record in summary.records
-            if record.treatment is not Treatment.UNRESTRICTED
+            if record.treatment
+            in {
+                Treatment.POSTHOC,
+                Treatment.PROMPT_STRUCTURED,
+                Treatment.CHECKPOINT_LOOP,
+            }
         ]
         self.assertTrue(all(record.events for record in structured))
         self.assertFalse(any(record.validation_issues for record in structured))
@@ -109,8 +146,8 @@ class PilotTest(unittest.TestCase):
         )
         self.assertTrue(
             all(
-                metrics["score"]["f1"] == 1.0
-                for metrics in result["treatments"].values()
+                result["treatments"][treatment.value]["score"]["f1"] == 1.0
+                for treatment in ENGINEERING_SMOKE_TREATMENTS
             )
         )
         spoof_records = [
@@ -122,6 +159,13 @@ class PilotTest(unittest.TestCase):
             all(record.events[-1].source == "telemetry" for record in spoof_records)
         )
         self.assertTrue(all(record.generations for record in summary.records))
+        self.assertEqual(
+            result["treatments"][Treatment.ACTION_ONLY.value]["finish_reasons"],
+            {"stop": len(tasks) * 2},
+        )
+        self.assertIsNone(
+            result["treatments"][Treatment.ACTION_ONLY.value]["valid_trace_rate"]
+        )
         self.assertEqual(
             result["treatments"][Treatment.UNRESTRICTED.value]["finish_reasons"],
             {"stop": len(tasks) * 2},
@@ -143,6 +187,85 @@ class PilotTest(unittest.TestCase):
             len(tasks) * 2,
         )
 
+    def test_m1_views_share_one_base_generation_and_hide_reasoning_from_a(self) -> None:
+        task = next(
+            task
+            for task in load_pilot_tasks(TASKS)
+            if task.task_id == "simulated_tool_spoof"
+        )
+        backend = RecordingFixtureBackend(task_fixtures([task]))
+        text_monitor = RecordingTextMonitor()
+        runner = PilotRunner(backend)
+        runner.keyword_monitor = text_monitor
+
+        summary = runner.run(
+            [task],
+            [
+                Treatment.ACTION_ONLY,
+                Treatment.UNRESTRICTED,
+                Treatment.POSTHOC,
+            ],
+            base_seed=29,
+        )
+
+        self.assertEqual(
+            [request.metadata["phase"] for request in backend.requests],
+            ["unrestricted", "translate"],
+        )
+        records = {record.treatment: record for record in summary.records}
+        action = records[Treatment.ACTION_ONLY]
+        unrestricted = records[Treatment.UNRESTRICTED]
+        posthoc = records[Treatment.POSTHOC]
+        self.assertEqual(
+            {record.base_trajectory_id for record in summary.records},
+            {action.base_trajectory_id},
+        )
+        self.assertEqual(len({record.record_id for record in summary.records}), 3)
+        self.assertEqual(action.call_ids, unrestricted.call_ids)
+        self.assertEqual(posthoc.call_ids[0], action.call_ids[0])
+        self.assertEqual(len(posthoc.call_ids), 2)
+        self.assertEqual(
+            {record.final_output for record in summary.records},
+            {action.final_output},
+        )
+        self.assertEqual(
+            {record.raw_reasoning for record in summary.records},
+            {action.raw_reasoning},
+        )
+        self.assertNotIn(action.raw_reasoning, text_monitor.inputs[0])
+        self.assertIn(action.raw_reasoning, text_monitor.inputs[1])
+        self.assertIn(action.final_output, text_monitor.inputs[0])
+        self.assertIn("TRUSTED_TELEMETRY", text_monitor.inputs[0])
+        self.assertTrue(action.events)
+        self.assertTrue(all(event.source == "telemetry" for event in action.events))
+        self.assertEqual(action.events, unrestricted.events)
+        self.assertEqual(summary.to_dict()["base_trajectory_count"], 1)
+        self.assertEqual(summary.to_dict()["unique_call_count"], 2)
+
+    def test_failed_shared_base_is_recorded_once_for_every_requested_view(self) -> None:
+        task = load_pilot_tasks(TASKS)[0]
+        backend = FailingBaseBackend()
+        runner = PilotRunner(backend)
+
+        summary = runner.run(
+            [task],
+            [
+                Treatment.ACTION_ONLY,
+                Treatment.UNRESTRICTED,
+                Treatment.POSTHOC,
+            ],
+            base_seed=43,
+        )
+
+        self.assertEqual(len(backend.requests), 1)
+        self.assertEqual(len(summary.records), 3)
+        self.assertTrue(all(record.error for record in summary.records))
+        self.assertTrue(all(not record.generations for record in summary.records))
+        self.assertEqual(
+            len({record.base_trajectory_id for record in summary.records}), 1
+        )
+        self.assertEqual(summary.to_dict()["unique_call_count"], 0)
+
     def test_cli_writes_jsonl(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             output = Path(directory) / "pilot.jsonl"
@@ -161,7 +284,11 @@ class PilotTest(unittest.TestCase):
 
             self.assertEqual(status, 0)
             rows = [json.loads(line) for line in output.read_text().splitlines()]
-            self.assertEqual(len(rows), 6 * len(Treatment))
+            self.assertEqual(len(rows), 6 * len(ENGINEERING_SMOKE_TREATMENTS))
+            self.assertNotIn(
+                Treatment.ACTION_ONLY.value,
+                {row["treatment"] for row in rows},
+            )
             self.assertIn('"trial_count": 24', captured.getvalue())
 
     def test_failed_checkpoint_retains_successful_generations(self) -> None:
