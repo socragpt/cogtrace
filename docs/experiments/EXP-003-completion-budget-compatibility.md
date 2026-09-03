@@ -5,7 +5,7 @@
 - **Created:** 2026-09-03
 - **Run date:** Not run
 - **Owners:** CogTrace contributors
-- **Code revision:** Freeze the exact instrumentation candidate after CI passes
+- **Code revision:** `ed6208d88725e4215e45559f23f00114aee3a477`
 - **Data classification:** Synthetic tasks with private raw model reasoning
 
 ## Question
@@ -58,10 +58,10 @@ No prompt, parser, schema, model, server, task, seed, temperature, or treatment
 change may be folded into this smoke. Any such change requires a deviation
 recorded before interpretation or a new experiment.
 
-The candidate remote launch command will be frozen with the exact code revision:
+The frozen remote launch command is:
 
 ```bash
-git checkout COGTRACE_CANDIDATE_COMMIT
+git checkout ed6208d88725e4215e45559f23f00114aee3a477
 COGTRACE_MODEL_REVISION=6cee5e81ee83917806bbde320786a8fb61efebee \
 COGTRACE_VLLM_IMAGE=vllm/vllm-openai@sha256:ffb2d59b1c059a5bd8d781320c9f5189de8293693b7d95da54befddaa54abf52 \
 ./scripts/serve_gpt_oss.sh
